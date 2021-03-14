@@ -1,11 +1,16 @@
+/* eslint linebreak-style: ["error","windows"] */
+/* global db print */
+/* eslint no-restricted-globals: "off" */
 const express = require('express');
 const fs = require('fs');
+require('dotenv').config();
 const { ApolloServer, UserInputError } = require('apollo-server-express');
 const { GraphQLScalarType } = require('graphql');
 const { Kind } = require('graphql/language');
 const { MongoClient } = require('mongodb');
 let aboutMessage = "Issue Tracker API v1.0";
-const url = 'mongodb+srv://Kavya:15is@D95@cluster0.0fcld.mongodb.net/issuetracker?retryWrites=true&w=majority';
+const url = process.env.DB_URL || 'mongodb+srv://Kavya:15is@D95@cluster0.0fcld.mongodb.net/issuetracker?retryWrites=true&w=majority';
+const port = process.env.API_SERVER_PORT || 3001;
 
 let db;
 
@@ -92,7 +97,7 @@ async function issueAdd(_, { issue }) {
 }
 
 const server = new ApolloServer({
-    typeDefs: fs.readFileSync('./server/schema.graphql', 'utf-8'),
+    typeDefs: fs.readFileSync('schema.graphql', 'utf-8'),
     resolvers,
     formatError: error => {
       console.log(error);
@@ -101,14 +106,15 @@ const server = new ApolloServer({
 });
 
 const app = express();
-app.use(express.static('public'));
-server.applyMiddleware({ app, path: '/graphql' });
+const enableCors = (process.env.ENABLE_CORS || 'true') == 'true';
+console.log('CORS setting ', enableCors);
+server.applyMiddleware({ app, path: '/graphql', cors:enableCors });
 
 (async function () {
   try {
     await connectToDb();
-    app.listen(3001, function () {
-      console.log('App started on port 3001');
+    app.listen(port, function () {
+      console.log(`API server started on port ${port}`);
     });
   }
   catch(err) {
